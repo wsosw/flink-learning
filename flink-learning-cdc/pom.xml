@@ -11,10 +11,15 @@
 
     <artifactId>flink-learning-cdc</artifactId>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
+    <dependencies>
+        <!-- 项目使用的是flink-1.14版本，如果使用mysql-cdc-2.3以下版本（依赖flink-1.13）会出现不兼容问题 -->
+        <!-- mysql8.0.26以上驱动名发生改变，如果mysql服务器版本大于8.0.26，使用mysql-cdc-2.3以下版本还会出现驱动名匹配不上的问题 -->
+        <!-- flink mysql cdc 连接器：https://mvnrepository.com/artifact/com.ververica/flink-connector-mysql-cdc -->
+        <dependency>
+            <groupId>com.ververica</groupId>
+            <artifactId>flink-connector-mysql-cdc</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+    </dependencies>
 
 </project>
