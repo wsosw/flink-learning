@@ -1,4 +1,4 @@
-package com.blackpearl.gmall;
+package com.blackpearl.gmall.utils;
 
 import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema;

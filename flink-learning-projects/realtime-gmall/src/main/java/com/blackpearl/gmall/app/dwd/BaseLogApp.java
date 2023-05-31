@@ -3,11 +3,8 @@ package com.blackpearl.gmall.app.dwd;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
-import com.blackpearl.gmall.KafkaUtil;
+import com.blackpearl.gmall.utils.KafkaUtil;
 import org.apache.flink.api.common.eventtime.WatermarkStrategy;
-import org.apache.flink.api.common.functions.FlatMapFunction;
-import org.apache.flink.api.common.functions.MapFunction;
-import org.apache.flink.api.common.functions.RichFlatMapFunction;
 import org.apache.flink.api.common.functions.RichMapFunction;
 import org.apache.flink.api.common.state.ValueState;
 import org.apache.flink.api.common.state.ValueStateDescriptor;
@@ -20,7 +17,6 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.ProcessFunction;
 import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
-import org.apache.flink.util.StringUtils;
 
 
 /**
@@ -51,7 +47,11 @@ public class BaseLogApp {
         env.setParallelism(1);
 
         // TODO 2. 消费 ods_base_log 主题数据
-        DataStreamSource<String> kafkaOdsBaseLog = env.fromSource(KafkaUtil.getKafkaSource(TOPIC_ODS_BASE_LOG, GROUP_BASE_LOG_APP), WatermarkStrategy.noWatermarks(), "kafka_ods_base_log");
+        DataStreamSource<String> kafkaOdsBaseLog = env.fromSource(
+                KafkaUtil.getKafkaSource(TOPIC_ODS_BASE_LOG, GROUP_BASE_LOG_APP),
+                WatermarkStrategy.noWatermarks(),
+                "kafka_ods_base_log"
+        );
 
         // TODO 3. 把每行数据转换为JSON对象（这步还需要过滤脏数据，使用map不合适）
         OutputTag<String> dirtyLogTag = new OutputTag<>("dirty-log", Types.STRING);
@@ -133,6 +133,11 @@ public class BaseLogApp {
         // TODO 6. 提取测流输出数据
         DataStream<String> startLogStream = pageLogStream.getSideOutput(startLogTag);
         DataStream<String> displayLogStream = pageLogStream.getSideOutput(displayLogTag);
+
+        // 打印日志
+        startLogStream.print("启动日志：");
+        displayLogStream.print("曝光日志：");
+        pageLogStream.print("页面日志：");
 
 
         // TODO 7. 将三个流的数据输出到kafka中
