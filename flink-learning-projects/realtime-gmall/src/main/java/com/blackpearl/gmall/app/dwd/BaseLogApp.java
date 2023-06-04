@@ -42,18 +42,18 @@ public class BaseLogApp {
 
     public static void main(String[] args) throws Exception {
 
-        // TODO 1. 获取执行环境
+        // 1. 获取执行环境
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
 
-        // TODO 2. 消费 ods_base_log 主题数据
+        // 2. 消费 ods_base_log 主题数据
         DataStreamSource<String> kafkaOdsBaseLog = env.fromSource(
                 KafkaUtil.getKafkaSource(TOPIC_ODS_BASE_LOG, GROUP_BASE_LOG_APP),
                 WatermarkStrategy.noWatermarks(),
                 "kafka_ods_base_log"
         );
 
-        // TODO 3. 把每行数据转换为JSON对象（这步还需要过滤脏数据，使用map不合适）
+        // 3. 把每行数据转换为JSON对象（这步还需要过滤脏数据，使用map不合适）
         OutputTag<String> dirtyLogTag = new OutputTag<>("dirty-log", Types.STRING);
         SingleOutputStreamOperator<JSONObject> jsonLogStream = kafkaOdsBaseLog.process(new ProcessFunction<String, JSONObject>() {
             @Override
@@ -72,7 +72,7 @@ public class BaseLogApp {
         // 打印脏数据
         jsonLogStream.getSideOutput(dirtyLogTag).print("dirty-log: ");
 
-        // TODO 4. 新老用户校验（利用状态校验，使用common中的is_new字段判断，根据mid分组，后续数据中如果存在isnew=1的数据还需将字段值修正为0）
+        // 4. 新老用户校验（利用状态校验，使用common中的is_new字段判断，根据mid分组，后续数据中如果存在isnew=1的数据还需将字段值修正为0）
         SingleOutputStreamOperator<JSONObject> jsonLogStreamWithNewFlag = jsonLogStream
                 .keyBy(json -> json.getJSONObject("common").getString("mid"))
                 .map(new RichMapFunction<JSONObject, JSONObject>() {
@@ -100,7 +100,7 @@ public class BaseLogApp {
                     }
                 });
 
-        // TODO 5. 日志数据分流，主流为页面日志，启动日志和曝光日志输出到测流
+        // 5. 日志数据分流，主流为页面日志，启动日志和曝光日志输出到测流
         OutputTag<String> startLogTag = new OutputTag<>("start-log", Types.STRING);
         OutputTag<String> displayLogTag = new OutputTag<>("display-log", Types.STRING);
         // 日志分流，需要调用context参数，因此需要使用process类型算子
@@ -130,7 +130,7 @@ public class BaseLogApp {
             }
         });
 
-        // TODO 6. 提取测流输出数据
+        // 6. 提取测流输出数据
         DataStream<String> startLogStream = pageLogStream.getSideOutput(startLogTag);
         DataStream<String> displayLogStream = pageLogStream.getSideOutput(displayLogTag);
 
@@ -140,13 +140,13 @@ public class BaseLogApp {
         pageLogStream.print("页面日志：");
 
 
-        // TODO 7. 将三个流的数据输出到kafka中
+        // 7. 将三个流的数据输出到kafka中
         startLogStream.sinkTo(KafkaUtil.getKafkaSink(TOPIC_DWD_START_LOG));
         displayLogStream.sinkTo(KafkaUtil.getKafkaSink(TOPIC_DWD_DISPLAY_LOG));
         pageLogStream.sinkTo(KafkaUtil.getKafkaSink(TOPIC_DWD_PAGE_LOG));
 
 
-        // TODO 8. 任务执行
+        // 8. 任务执行
         env.execute("base-log-app");
     }
 

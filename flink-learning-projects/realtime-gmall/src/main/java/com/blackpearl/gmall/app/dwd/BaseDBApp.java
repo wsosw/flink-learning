@@ -28,18 +28,18 @@ public class BaseDBApp {
 
     public static void main(String[] args) throws Exception {
 
-        // TODO 1. 获取执行环境
+        // 1. 获取执行环境
         StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
         env.setParallelism(1);
 
-        // TODO 2. 消费kafka中 ods_base_db 主题数据
+        // 2. 消费kafka中 ods_base_db 主题数据
         DataStreamSource<String> kafkaBaseDBStream = env.fromSource(
                 KafkaUtil.getKafkaSource(TOPIC_ODS_BASE_DB, GROUP_BASE_DB_APP),
                 WatermarkStrategy.noWatermarks(),
                 "kafka-base-db-stream"
         );
 
-        // TODO 3. 将每行数据转换成json对象并过滤delete数据
+        // 3. 将每行数据转换成json对象并过滤delete数据
         SingleOutputStreamOperator<JSONObject> jsonDBStream = kafkaBaseDBStream.map(JSON::parseObject).filter(new FilterFunction<JSONObject>() {
             @Override
             public boolean filter(JSONObject jsonObject) throws Exception {
@@ -47,7 +47,7 @@ public class BaseDBApp {
             }
         });
 
-        // TODO 4. 使用FlinkCDC消费配置表并处理成广播流
+        // 4. 使用FlinkCDC消费配置表并处理成广播流
         // 创建一个新的库和表，用来存储gmall库中表的分流信息
         MySqlSource<String> tableConf = MySqlSource.<String>builder()
                 .hostname("node01")
@@ -63,18 +63,18 @@ public class BaseDBApp {
         MapStateDescriptor<String, TableProcess> tableProcessMapStateDescriptor = new MapStateDescriptor<>("tbl-conf-desc", String.class, TableProcess.class);
         BroadcastStream<String> broadcastStream = tableConfStream.broadcast(tableProcessMapStateDescriptor);
 
-        // TODO 5. 连接主流和广播流
+        // 5. 连接主流和广播流
         BroadcastConnectedStream<JSONObject, String> connectedStream = jsonDBStream.connect(broadcastStream);
 
-        // TODO 6. 分流处理数据 广播流数据和主流数据（根据广播流进行处理）
+        // 6. 分流处理数据 广播流数据和主流数据（根据广播流进行处理）
         OutputTag<JSONObject> hbaseTag = new OutputTag<>("hbase-tag", TypeInformation.of(JSONObject.class));
         SingleOutputStreamOperator<JSONObject> kafkaStream = connectedStream.process(new TableProcessFunction(hbaseTag, tableProcessMapStateDescriptor));
 
-        // TODO 7. 提取kafka流数据和hbase流数据
+        // 7. 提取kafka流数据和hbase流数据
         // 以上分流结果中主流kafkaStream就是要写到kafka中的数据
         DataStream<JSONObject> hbaseStream = kafkaStream.getSideOutput(hbaseTag);
 
-        // TODO 8. 将kafka数据写入kafka主题，将hbase数据写入phoenix表
+        // 8. 将kafka数据写入kafka主题，将hbase数据写入phoenix表
         kafkaStream.print("kafka数据：");
         hbaseStream.print("hbase数据：");
 
@@ -94,7 +94,7 @@ public class BaseDBApp {
                 .build()
         );
 
-        // TODO 9. 任务执行
+        // 9. 任务执行
         env.execute("base-db-app");
     }
 
