@@ -35,8 +35,8 @@ public class DimHbaseSinkFunction extends RichSinkFunction<JSONObject> {
 
             // 构建sql语句
             String upsertKeys = StringUtils.join(after.keySet(), ",");
-            String upsertValues = StringUtils.join(after.values(), ",");
-            String upsertSQL = String.format("upsert into %s.%s (%s) values (%s)", PhoenixConfig.HBASE_SCHEMA, sinkTable, upsertKeys, upsertValues);
+            String upsertValues = StringUtils.join(after.values(), "','");
+            String upsertSQL = String.format("upsert into %s.%s (%s) values ('%s')", PhoenixConfig.HBASE_SCHEMA, sinkTable, upsertKeys, upsertValues);
             System.out.println(upsertSQL);
 
             preparedStatement = connection.prepareStatement(upsertSQL);

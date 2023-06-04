@@ -3,6 +3,7 @@ package com.blackpearl.gmall.app.dwd;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.blackpearl.gmall.bean.TableProcess;
+import com.blackpearl.gmall.common.MySqlConfig;
 import com.blackpearl.gmall.function.CustomDeserializer;
 import com.blackpearl.gmall.function.DimHbaseSinkFunction;
 import com.blackpearl.gmall.function.TableProcessFunction;
@@ -42,7 +43,7 @@ public class BaseDBApp {
         SingleOutputStreamOperator<JSONObject> jsonDBStream = kafkaBaseDBStream.map(JSON::parseObject).filter(new FilterFunction<JSONObject>() {
             @Override
             public boolean filter(JSONObject jsonObject) throws Exception {
-                return !jsonObject.getString("operation").equals("delete");
+                return !MySqlConfig.RECORD_OPERATION_DELETE.equals(jsonObject.getString("operation"));
             }
         });
 

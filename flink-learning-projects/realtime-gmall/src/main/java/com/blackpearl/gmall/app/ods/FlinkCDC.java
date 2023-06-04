@@ -37,7 +37,7 @@ public class FlinkCDC {
                 .tableList(".*")
                 .deserializer(new CustomDeserializer())
 //                .deserializer(new JsonDebeziumDeserializationSchema())
-                .startupOptions(StartupOptions.earliest())
+                .startupOptions(StartupOptions.latest())
                 .build();
 
         DataStreamSource<String> binlog = env.fromSource(mySqlSource, WatermarkStrategy.noWatermarks(), "mysql-source");

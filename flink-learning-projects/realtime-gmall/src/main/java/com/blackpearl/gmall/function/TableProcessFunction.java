@@ -3,6 +3,7 @@ package com.blackpearl.gmall.function;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.blackpearl.gmall.bean.TableProcess;
+import com.blackpearl.gmall.common.MySqlConfig;
 import com.blackpearl.gmall.common.PhoenixConfig;
 import org.apache.flink.api.common.state.BroadcastState;
 import org.apache.flink.api.common.state.MapStateDescriptor;
@@ -80,7 +81,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
 
 
         // 如果 operation == delete, 将对应key-value从广播状态中删掉（只删状态，不删表）
-        if ("delete".equals(operation)) {
+        if (MySqlConfig.RECORD_OPERATION_DELETE.equals(operation)) {
             TableProcess tableProcess = JSON.parseObject(jsonObject.getString("before"), TableProcess.class);
             if (tableProcess.getId() != 0) {
                 String key = tableProcess.getSourceTable() + "-" + tableProcess.getOperateType();
@@ -114,7 +115,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             }
 
             // 组合建表语句
-            StringBuffer createTableSQL = new StringBuffer("create table if not exist ")
+            StringBuffer createTableSQL = new StringBuffer("create table if not exists ")
                     .append(PhoenixConfig.HBASE_SCHEMA)
                     .append(".")
                     .append(sinkTable)
@@ -137,6 +138,7 @@ public class TableProcessFunction extends BroadcastProcessFunction<JSONObject, S
             preparedStatement.execute();
 
         } catch (SQLException e) {
+            e.printStackTrace();
             throw new RuntimeException("Phoenix表" + sinkTable + "建表失败! ");
         } finally {
             if (preparedStatement != null) {
