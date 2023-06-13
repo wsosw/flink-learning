@@ -18,6 +18,7 @@ import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import java.text.SimpleDateFormat;
 
 /**
+ * TODO 未测试
  * 需求：统计每日的活跃用户
  * 思路：根据页面日志中用户每天首次进入网站来计数
  */
