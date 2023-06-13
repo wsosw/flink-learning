@@ -88,6 +88,20 @@
             <version>2.5.0</version>
         </dependency>
 
+        <!-- flink cep 定义事件规则，识别数据流中的符合规则的事件 -->
+        <dependency>
+            <groupId>org.apache.flink</groupId>
+            <artifactId>flink-cep_${scala.version}</artifactId>
+            <version>${flink.version}</version>
+        </dependency>
+
+        <!-- redis -->
+        <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+
 
     </dependencies>
 
