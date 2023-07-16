@@ -1,0 +1,4 @@
+- rule_engine：flink程序
+- rule_manager：模拟规则管理平台web后端程序，不再创建新的工程或模块
+- export：模拟数据导出到ES
+- common：共用模块
