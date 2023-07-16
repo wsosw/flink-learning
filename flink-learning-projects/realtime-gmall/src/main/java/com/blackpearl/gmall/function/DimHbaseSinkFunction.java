@@ -1,7 +1,9 @@
 package com.blackpearl.gmall.function;
 
 import com.alibaba.fastjson.JSONObject;
+import com.blackpearl.gmall.common.MySqlConfig;
 import com.blackpearl.gmall.common.PhoenixConfig;
+import com.blackpearl.gmall.utils.DimUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.sink.RichSinkFunction;
@@ -41,7 +43,12 @@ public class DimHbaseSinkFunction extends RichSinkFunction<JSONObject> {
 
             preparedStatement = connection.prepareStatement(upsertSQL);
 
-            // TODO 如果当前数据为更新操作（value.operation == update），则先删除redis中的数据
+            // 如果当前数据为更新操作（value.operation == update），则先删除redis中的数据
+            // 此处的数据删除，对应的是订单宽表（OrderWide）关联的维度数据，防止join过期的失效数据
+            if (MySqlConfig.RECORD_OPERATION_UPDATE.equals(value.getString("operation"))) {
+                DimUtil.delRedisDimInfo(sinkTable, after.getString("id"));
+            }
+
 
             preparedStatement.executeUpdate();
 
