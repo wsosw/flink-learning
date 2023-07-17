@@ -9,7 +9,7 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserEvent {
+public class EventLog {
     // 用户自增标识
     private int guid;
     private String eventId;

@@ -9,11 +9,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashMap;
 
 public class ActionConditionQueryService {
 
-    private Connection connection;  // 负责查询doris中历史数据使用
-    private Jedis jedis;    // 负责将历史状态写入到redis状态机
+    Connection connection;  // 负责查询doris中历史数据使用
+    Jedis jedis;    // 负责将历史状态写入到redis状态机
 
     public ActionConditionQueryService() throws SQLException {
         connection = DriverManager.getConnection("jdbc:mysql://node01:9030/demo", "root", "123456");
@@ -38,18 +39,19 @@ public class ActionConditionQueryService {
     //   "conditionId": 1,
     //   "dorisQueryTemplate": "action_count"
     // }
-    public void processActionCountCondition(JSONObject actionCountParamJsonObject, String ruleId) throws SQLException {
+    public void processActionCountCondition(JSONObject eventParamJsonObject, String ruleId) throws SQLException {
 
-        String eventId = actionCountParamJsonObject.getString("eventId");
-        String windowStart = actionCountParamJsonObject.getString("windowStart");
-        String windowEnd = actionCountParamJsonObject.getString("windowEnd");
-        Integer conditionId = actionCountParamJsonObject.getInteger("conditionId");
-        JSONArray attributeParamsJsonArray = actionCountParamJsonObject.getJSONArray("attributeParams");
+        String eventId = eventParamJsonObject.getString("eventId");
+        String windowStart = eventParamJsonObject.getString("windowStart");
+        String windowEnd = eventParamJsonObject.getString("windowEnd");
+        Integer conditionId = eventParamJsonObject.getInteger("conditionId");
+        JSONArray attributeParamsJsonArray = eventParamJsonObject.getJSONArray("attributeParams");
 
         // 拼接查询SQL
         StringBuilder sql = new StringBuilder("select guid, count(1) as cnt from events_detail where 1=1 ");
         if (eventId != null && !eventId.isEmpty()) sql.append(String.format("and event_id = '%s' ", eventId));
-        if (windowStart != null && !windowStart.isEmpty()) sql.append(String.format("and event_time >= '%s' ", windowStart));
+        if (windowStart != null && !windowStart.isEmpty())
+            sql.append(String.format("and event_time >= '%s' ", windowStart));
         if (windowEnd != null && !windowEnd.isEmpty()) sql.append(String.format("and event_time <= '%s' ", windowEnd));
 
         for (int i = 0; i < attributeParamsJsonArray.size(); i++) {
@@ -63,14 +65,28 @@ public class ActionConditionQueryService {
 
         System.out.println("当前行为次数条件查询SQL：" + sql);
 
+        // 构造redis写入参数
+        String redisKey = ruleId + ":" + conditionId;
+        HashMap<String, String> guidAndCount = new HashMap<>();
+
         ResultSet resultSet = connection.createStatement().executeQuery(sql.toString());
         while (resultSet.next()) {
             int guid = resultSet.getInt("guid");
             long count = resultSet.getLong("cnt");
-            System.out.println(">>>>>>>>>>>>>>>>>>>>>" + guid + ">>>>>>>>>>>"+ count);
+
+            guidAndCount.put(String.valueOf(guid), String.valueOf(count));
+
+            // 将数据分批次写入redis，分批次写入有以下两点考虑：1.一批全部写入可能导致内存消耗过大；2.一条条写入太过频繁，还有其他的规则计算也在实时读写
+            if (guidAndCount.size() == 1000) {
+                jedis.hmset(redisKey, guidAndCount);
+                guidAndCount.clear();
+            }
         }
 
-        // TODO 以上测试已完成，下一步就是把上边统计好的guid和次数写到redis
+        // 将最后不满的批次，写入到redis
+        if (guidAndCount.size() > 0) {
+            jedis.hmset(redisKey, guidAndCount);
+        }
 
     }
 

@@ -61,6 +61,13 @@
             <type>pom</type>
         </dependency>
 
+        <!-- 模板引擎 -->
+        <dependency>
+            <groupId>com.jfinal</groupId>
+            <artifactId>enjoy</artifactId>
+            <version>5.0.0</version>
+        </dependency>
+
 
     </dependencies>
 
