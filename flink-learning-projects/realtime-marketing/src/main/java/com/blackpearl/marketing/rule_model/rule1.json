@@ -1,5 +1,5 @@
 {
-  "ruleModelId": 1,
+  "ruleModelId": "model_01",
   "ruleId": "rule001",
   "profileCondition": [
     {
@@ -44,9 +44,9 @@
             "compareValue": "page001"
           }
         ],
-        "windowStart": "2022-08-01 12:00:00",
-        "windowEnd": "2022-08-30 12:00:00",
-        "eventCount": 1,
+        "windowStart": "2023-07-01 12:00:00",
+        "windowEnd": "2023-07-30 12:00:00",
+        "eventCount": 3,
         "conditionId": 2,
         "dorisQueryTemplate": "action_count"
       },
@@ -59,13 +59,13 @@
             "compareValue": "page002"
           }
         ],
-        "windowStart": "2022-08-01 12:00:00",
-        "windowEnd": "2022-08-30 12:00:00",
-        "eventCount": 1,
+        "windowStart": "2023-07-01 12:00:00",
+        "windowEnd": "2023-07-30 12:00:00",
+        "eventCount": 2,
         "conditionId": 3,
         "dorisQueryTemplate": "action_count"
       }
     ],
-    "combineExpr": " res0 && (res1 || res2) "
+    "combineExpr": "res_1 && (res_2 && res_3)"
   }
 }

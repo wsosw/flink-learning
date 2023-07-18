@@ -1,22 +1,16 @@
-package com.blackpearl.marketing.rule_model.calculator.java;
+package com.blackpearl.marketing.rule_model.calculator.groovy
 
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
-import com.blackpearl.marketing.common.interfaces.RuleCalculator;
-import com.blackpearl.marketing.common.pojo.EventLog;
-import org.apache.commons.lang3.time.DateUtils;
-import org.roaringbitmap.RoaringBitmap;
-import redis.clients.jedis.Jedis;
+import com.alibaba.fastjson.JSONArray
+import com.alibaba.fastjson.JSONObject
+import com.blackpearl.marketing.common.interfaces.RuleCalculator
+import com.blackpearl.marketing.common.pojo.EventLog
+import org.apache.commons.lang3.time.DateUtils
+import org.roaringbitmap.RoaringBitmap
+import redis.clients.jedis.Jedis
 
-import java.text.ParseException;
+import java.text.ParseException
 
-
-/**
- * 规则模型_01运算机：该规则模型包含画像条件和行为次数条件
- * 运算器java代码只在开发测试时使用，生产中要将java代码转成groovy代码，并使用enjoy模板引擎处理，最后放到数据库中
- * 规则上线时，会自动到mysql中去查，然后渲染成对应的计算代码
- */
-public class RuleModelCalculator_01 implements RuleCalculator {
+class RuleModelCalculator_01 implements RuleCalculator{
 
     private Jedis jedis;
     private JSONObject ruleDefinition;
@@ -75,11 +69,11 @@ public class RuleModelCalculator_01 implements RuleCalculator {
                 String eventAttributeValue = eventLog.getProperties().get(attributeName);
 
                 if (eventAttributeValue == null) break;
-                if ("=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) == 0)) break;
-                if (">".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) > 0)) break;
-                if ("<".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) < 0)) break;
-                if (">=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) >= 0)) break;
-                if ("<=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) <= 0)) break;
+                if ("=" == compareType && !(compareValue == eventAttributeValue)) break;
+                if (">" == compareType && !(compareValue > eventAttributeValue)) break;
+                if ("<" == compareType && !(compareValue < eventAttributeValue)) break;
+                if (">=" == compareType && !(compareValue >= eventAttributeValue)) break;
+                if ("<=" == compareType && !(compareValue <= eventAttributeValue)) break;
 
                 matchCount++;
             }
@@ -110,7 +104,7 @@ public class RuleModelCalculator_01 implements RuleCalculator {
 
             Integer conditionId = eventParam.getInteger("conditionId");
             Integer eventCount = eventParam.getInteger("eventCount");
-            
+
             String redisKey = ruleId + ":" + conditionId;
             String currentCountStr = jedis.hget(redisKey, String.valueOf(guid));
             int currentCount = Integer.parseInt(currentCountStr == null ? "0" : currentCountStr);
@@ -136,4 +130,5 @@ public class RuleModelCalculator_01 implements RuleCalculator {
 
         return false;
     }
+
 }
