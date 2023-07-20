@@ -1,26 +1,28 @@
 package com.blackpearl.marketing.rule_model.calculator.groovy
 
+import com.alibaba.fastjson.JSON
 import com.alibaba.fastjson.JSONArray
 import com.alibaba.fastjson.JSONObject
 import com.blackpearl.marketing.common.interfaces.RuleCalculator
 import com.blackpearl.marketing.common.pojo.EventLog
+import com.blackpearl.marketing.common.pojo.RuleInfo
 import org.apache.commons.lang3.time.DateUtils
 import org.roaringbitmap.RoaringBitmap
 import redis.clients.jedis.Jedis
 
 import java.text.ParseException
 
-class RuleModelCalculator_01 implements RuleCalculator{
+class RuleModel_01_Calculator implements RuleCalculator{
 
     private Jedis jedis;
     private JSONObject ruleDefinition;
     private RoaringBitmap profileUserBitmap;
 
     @Override
-    public void init(JSONObject ruleDefinition, RoaringBitmap profileUserBitmap) {
+    public void init(RuleInfo ruleInfo) {
         this.jedis = new Jedis("node01", 6379);
-        this.ruleDefinition = ruleDefinition;
-        this.profileUserBitmap = profileUserBitmap;
+        this.ruleDefinition = JSON.parseObject(ruleInfo.getRuleDefinitionJson());
+        this.profileUserBitmap = ruleInfo.getProfileUserBitmap();
     }
 
     @Override
@@ -113,6 +115,7 @@ class RuleModelCalculator_01 implements RuleCalculator{
         }
 
         // 模板代码
+        // 这里的命名不太好，下边指令中的eventParams是enjoy模板引擎外部需要传入的参数，而不是上边具体的eventParams参数
         // #for(eventParam : eventParams)
         // JSONObject eventParam_#(for.index) = eventParams.getJSONObject(#(for.index));
         //

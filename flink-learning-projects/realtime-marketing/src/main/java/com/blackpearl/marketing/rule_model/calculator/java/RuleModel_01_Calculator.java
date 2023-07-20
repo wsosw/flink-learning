@@ -1,30 +1,40 @@
-package com.blackpearl.marketing.rule_model.calculator.groovy
+package com.blackpearl.marketing.rule_model.calculator.java;
 
-import com.alibaba.fastjson.JSONArray
-import com.alibaba.fastjson.JSONObject
-import com.blackpearl.marketing.common.interfaces.RuleCalculator
-import com.blackpearl.marketing.common.pojo.EventLog
-import org.apache.commons.lang3.time.DateUtils
-import org.roaringbitmap.RoaringBitmap
-import redis.clients.jedis.Jedis
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONArray;
+import com.alibaba.fastjson.JSONObject;
+import com.blackpearl.marketing.common.interfaces.RuleCalculator;
+import com.blackpearl.marketing.common.pojo.EventLog;
+import com.blackpearl.marketing.common.pojo.RuleInfo;
+import org.apache.commons.lang3.time.DateUtils;
+import org.roaringbitmap.RoaringBitmap;
+import redis.clients.jedis.Jedis;
 
-import java.text.ParseException
+import java.text.ParseException;
 
-class RuleModelCalculator_01 implements RuleCalculator{
+
+/**
+ * 规则模型_01运算机：该规则模型包含画像条件和行为次数条件
+ * 运算器java代码只在开发测试时使用，生产中要将java代码转成groovy代码，并使用enjoy模板引擎处理，最后放到数据库中
+ * 规则上线时，会自动到mysql中去查，然后渲染成对应的计算代码
+ */
+public class RuleModel_01_Calculator implements RuleCalculator {
 
     private Jedis jedis;
     private JSONObject ruleDefinition;
     private RoaringBitmap profileUserBitmap;
 
     @Override
-    public void init(JSONObject ruleDefinition, RoaringBitmap profileUserBitmap) {
+    public void init(RuleInfo ruleInfo) {
         this.jedis = new Jedis("node01", 6379);
-        this.ruleDefinition = ruleDefinition;
-        this.profileUserBitmap = profileUserBitmap;
+        this.ruleDefinition = JSON.parseObject(ruleInfo.getRuleDefinitionJson());
+        this.profileUserBitmap = ruleInfo.getProfileUserBitmap();
     }
 
     @Override
     public void calculate(EventLog eventLog) throws ParseException {
+
+        // TODO 此处要对规则内的所有条件参数做容错，不要求死规则，要实现所有规则条件灵活匹配
 
         long eventTime = eventLog.getEventTime();
 
@@ -69,11 +79,11 @@ class RuleModelCalculator_01 implements RuleCalculator{
                 String eventAttributeValue = eventLog.getProperties().get(attributeName);
 
                 if (eventAttributeValue == null) break;
-                if ("=" == compareType && !(compareValue == eventAttributeValue)) break;
-                if (">" == compareType && !(compareValue > eventAttributeValue)) break;
-                if ("<" == compareType && !(compareValue < eventAttributeValue)) break;
-                if (">=" == compareType && !(compareValue >= eventAttributeValue)) break;
-                if ("<=" == compareType && !(compareValue <= eventAttributeValue)) break;
+                if ("=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) == 0)) break;
+                if (">".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) > 0)) break;
+                if ("<".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) < 0)) break;
+                if (">=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) >= 0)) break;
+                if ("<=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) <= 0)) break;
 
                 matchCount++;
             }
@@ -99,34 +109,36 @@ class RuleModelCalculator_01 implements RuleCalculator{
         JSONArray eventParams = actionCountCondition.getJSONArray("eventParams");
 
         // 逻辑代码
-        // for (int i = 0; i < eventParams.size(); i++) {
-        //     JSONObject eventParam = eventParams.getJSONObject(i);
-        //
-        //     Integer conditionId = eventParam.getInteger("conditionId");
-        //     Integer eventCount = eventParam.getInteger("eventCount");
-        //
-        //     String redisKey = ruleId + ":" + conditionId;
-        //     String currentCountStr = jedis.hget(redisKey, String.valueOf(guid));
-        //     int currentCount = Integer.parseInt(currentCountStr == null ? "0" : currentCountStr);
-        //
-        //     boolean res = currentCount >= eventCount;
-        // }
+        for (int i = 0; i < eventParams.size(); i++) {
+            JSONObject eventParam = eventParams.getJSONObject(i);
+
+            Integer conditionId = eventParam.getInteger("conditionId");
+            Integer eventCount = eventParam.getInteger("eventCount");
+            
+            String redisKey = ruleId + ":" + conditionId;
+            String currentCountStr = jedis.hget(redisKey, String.valueOf(guid));
+            int currentCount = Integer.parseInt(currentCountStr == null ? "0" : currentCountStr);
+
+            boolean res = currentCount >= eventCount;
+        }
 
         // 模板代码
-        #for(eventParam : eventParams)
-        JSONObject eventParam_#(for.index) = eventParams.getJSONObject(#(for.index));
+        // 这里的命名不太好，下边指令中的eventParams是enjoy模板引擎外部需要传入的参数，而不是上边具体的eventParams参数
+        // #for(eventParam : eventParams)
+        // JSONObject eventParam_#(for.index) = eventParams.getJSONObject(#(for.index));
+        //
+        // Integer conditionId_#(for.index) = eventParam_#(for.index).getInteger("conditionId");
+        // Integer eventCount_#(for.index) = eventParam_#(for.index).getInteger("eventCount");
+        //
+        // String redisKey_#(for.index) = ruleId + ":" + conditionId_#(for.index);
+        // String currentCountStr_#(for.index) = jedis.hget(redisKey_#(for.index), String.valueOf(guid));
+        // int currentCount_#(for.index) = Integer.parseInt(currentCountStr_#(for.index) == null ? "0" : currentCountStr_#(for.index));
+        //
+        // boolean res_#(eventParam.conditionId) = currentCount_#(for.index) >= eventCount_#(for.index);
+        // #end
+        //
+        // return #(combineExpr);
 
-        Integer conditionId_#(for.index) = eventParam_#(for.index).getInteger("conditionId");
-        Integer eventCount_#(for.index) = eventParam_#(for.index).getInteger("eventCount");
-
-        String redisKey_#(for.index) = ruleId + ":" + conditionId_#(for.index);
-        String currentCountStr_#(for.index) = jedis.hget(redisKey_#(for.index), String.valueOf(guid));
-        int currentCount_#(for.index) = Integer.parseInt(currentCountStr_#(for.index) == null ? "0" : currentCountStr_#(for.index));
-
-        boolean res_#(eventParam.conditionId) = currentCount_#(for.index) >= eventCount_#(for.index);
-        #end
-
-        return #(combineExpr);
+        return false;
     }
-
 }

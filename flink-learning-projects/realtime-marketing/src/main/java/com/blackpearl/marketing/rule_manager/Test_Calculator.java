@@ -5,6 +5,7 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.blackpearl.marketing.common.interfaces.RuleCalculator;
 import com.blackpearl.marketing.common.pojo.EventLog;
+import com.blackpearl.marketing.common.pojo.RuleInfo;
 import com.blackpearl.marketing.rule_manager.service.ActionConditionQueryService;
 import com.blackpearl.marketing.rule_manager.service.RuleSystemMetaService;
 import com.jfinal.template.Engine;
@@ -36,7 +37,7 @@ public class Test_Calculator {
 
 
         // 将规则模型模板代码正式渲染成当前规则对应运算代码
-        Template template = Engine.use().getTemplate("D:\\WorkSpace\\Java\\flink-learning\\flink-learning-projects\\realtime-marketing\\src\\main\\java\\com\\blackpearl\\marketing\\rule_model\\calculator\\template\\RuleModelCalculator_01.template.enjoy");
+        Template template = Engine.use().getTemplate("D:\\WorkSpace\\Java\\flink-learning\\flink-learning-projects\\realtime-marketing\\src\\main\\java\\com\\blackpearl\\marketing\\rule_model\\calculator\\template\\RuleModel_01_Calculator.template.enjoy");
         HashMap<String, Object> renderInfo = new HashMap<>();
         renderInfo.put("eventParams", eventParams);
         renderInfo.put("combineExpr", combineExpr);
@@ -48,7 +49,13 @@ public class Test_Calculator {
         RuleCalculator calculator = (RuleCalculator) aClass.newInstance();
 
         RoaringBitmap profileUserBitmap = RoaringBitmap.bitmapOf(1, 2, 3);
-        calculator.init(ruleDefinition, profileUserBitmap);
+
+        RuleInfo ruleInfo = new RuleInfo();
+        ruleInfo.setRuleDefinitionJson(ruleDefinition.toJSONString());
+        ruleInfo.setProfileUserBitmap(profileUserBitmap);
+
+        calculator.init(ruleInfo);
+
         HashMap<String, String> hashMap = new HashMap<>();
         hashMap.put("pageId", "page002");
         EventLog eventLog = new EventLog(1, "e3", hashMap, 1689667701975L);
