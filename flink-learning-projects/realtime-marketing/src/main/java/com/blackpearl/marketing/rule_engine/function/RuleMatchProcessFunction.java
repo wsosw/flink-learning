@@ -14,13 +14,13 @@ import org.apache.flink.util.Collector;
 
 import java.util.Map;
 
-public class RuleMatchProcessFunction extends KeyedBroadcastProcessFunction<Integer, EventLog, RuleInfo, RuleMatchResult> {
+public class RuleMatchProcessFunction extends KeyedBroadcastProcessFunction<Integer, EventLog, RuleInfo, String> {
 
     /**
      * 事件处理，规则运算机调用核心逻辑
      */
     @Override
-    public void processElement(EventLog eventLog, KeyedBroadcastProcessFunction<Integer, EventLog, RuleInfo, RuleMatchResult>.ReadOnlyContext readOnlyContext, Collector<RuleMatchResult> collector) throws Exception {
+    public void processElement(EventLog eventLog, KeyedBroadcastProcessFunction<Integer, EventLog, RuleInfo, String>.ReadOnlyContext readOnlyContext, Collector<String> collector) throws Exception {
         ReadOnlyBroadcastState<String, RuleInfo> ruleInfoBroadcastState = readOnlyContext.getBroadcastState(FlinkStateDescriptors.ruleInfoMapStateDescriptor);
 
         // 每个事件进来都要对所有上线规则进行匹配计算
@@ -36,7 +36,8 @@ public class RuleMatchProcessFunction extends KeyedBroadcastProcessFunction<Inte
             // TODO 判断当前规则是否需要开启定时器功能（对使用定时器和使用启定时器的规则需要进行不同的处理）
             calculator.calculate(eventLog);
 
-
+            // TODO 收集calculator返回的数据，使用collector写出去
+            // collector.collect();
 
         }
 
@@ -44,7 +45,7 @@ public class RuleMatchProcessFunction extends KeyedBroadcastProcessFunction<Inte
     }
 
     @Override
-    public void processBroadcastElement(RuleInfo ruleInfo, KeyedBroadcastProcessFunction<Integer, EventLog, RuleInfo, RuleMatchResult>.Context context, Collector<RuleMatchResult> collector) throws Exception {
+    public void processBroadcastElement(RuleInfo ruleInfo, KeyedBroadcastProcessFunction<Integer, EventLog, RuleInfo, String>.Context context, Collector<String> collector) throws Exception {
 
         BroadcastState<String, RuleInfo> ruleInfoBroadcastState = context.getBroadcastState(FlinkStateDescriptors.ruleInfoMapStateDescriptor);
 

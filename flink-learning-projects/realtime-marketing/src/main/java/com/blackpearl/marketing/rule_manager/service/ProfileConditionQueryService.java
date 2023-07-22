@@ -108,8 +108,6 @@ public class ProfileConditionQueryService {
         // 关闭ES客户端
         // client.close();
 
-
-
         return bitmap;
     }
 }

@@ -1,6 +1,18 @@
 {
-  "ruleModelId": "model_01",
-  "ruleId": "rule001",
+  "ruleModelId": "M1",
+  "ruleId": "M1-R1",
+  "triggerEvent": {
+    "eventId": "e5",
+    "attributeParams": [
+      {
+        "attributeName": "pageId",
+        "compareType": "=",
+        "compareValue": "page001"
+      }
+    ],
+    "windowStart": "2022-08-01 12:00:00",
+    "windowEnd": "2022-08-30 12:00:00"
+  },
   "profileCondition": [
     {
       "tagId": "tg01",
@@ -67,5 +79,6 @@
       }
     ],
     "combineExpr": "res_1 && (res_2 && res_3)"
-  }
+  },
+  "max_match_count": 1
 }

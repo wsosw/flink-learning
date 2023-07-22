@@ -32,13 +32,12 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class ActionSeqParam {
+public class ActionSequenceParam {
 
     private String windowStart;
     private String windowEnd;
     private int conditionId;
-    private String dorisQueryTemplate;
-    private int seqCount;
+    private int sequenceCount;
 
     private List<EventParam> eventParams;
 }

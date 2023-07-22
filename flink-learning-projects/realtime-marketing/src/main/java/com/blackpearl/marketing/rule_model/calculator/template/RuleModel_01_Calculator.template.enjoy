@@ -124,7 +124,7 @@ class RuleModel_01_Calculator implements RuleCalculator{
         String currentCountStr_#(for.index) = jedis.hget(redisKey_#(for.index), String.valueOf(guid));
         int currentCount_#(for.index) = Integer.parseInt(currentCountStr_#(for.index) == null ? "0" : currentCountStr_#(for.index));
 
-        boolean res_#(eventParam.conditionId) = currentCount_#(for.index) >= eventCount_#(for.index);
+        boolean res_#(for.index) = currentCount_#(for.index) >= eventCount_#(for.index);
         #end
 
         return #(combineExpr);

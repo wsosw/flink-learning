@@ -1,5 +1,6 @@
 package com.blackpearl.marketing.rule_engine.main;
 
+import com.alibaba.fastjson.JSON;
 import com.blackpearl.marketing.common.pojo.EventLog;
 import com.blackpearl.marketing.rule_engine.function.EventString2EventLogMapFunction;
 import com.blackpearl.marketing.rule_engine.function.RuleMatchProcessFunction;
@@ -48,6 +49,8 @@ public class RuleEngine {
                 .fromSource(kafkaSource, WatermarkStrategy.noWatermarks(), "kafka-rtmk-events")
                 .map(new EventString2EventLogMapFunction());
 
+        eventLogStream.map(JSON::toJSONString).print("行为日志");
+
         // 使用flink-cdc抓取规则系统源数据库中的规则信息（包括新增规则，修改规则，删除规则）
         tenv.executeSql(" CREATE TABLE rule_info_cdc (     " +
                 "   `id` int PRIMARY KEY NOT ENFORCED,        " +
@@ -72,18 +75,20 @@ public class RuleEngine {
                 .map(new TableRow2RuleInfoMapFunction())
                 .filter(ruleInfo -> ruleInfo.getId() > 0);
 
+        ruleInfoStream.map(JSON::toJSONString).print("规则信息");
+
         // 将规则信息流转换成广播流
         BroadcastStream<RuleInfo> ruleInfoBroadcastStream = ruleInfoStream.broadcast(FlinkStateDescriptors.ruleInfoMapStateDescriptor);
 
         // 连接事件流和广播流，并对每个流入的事件进行计算和处理
-        SingleOutputStreamOperator<RuleMatchResult> resultStream = eventLogStream
+        SingleOutputStreamOperator<String> resultStream = eventLogStream
                 .keyBy(EventLog::getGuid)
                 .connect(ruleInfoBroadcastStream)
                 .process(new RuleMatchProcessFunction());
 
 
         // TODO 将触达信息写入目标系统（比如kafka）
-        // resultStream.print();
+         resultStream.print();
 
 
         // 任务执行

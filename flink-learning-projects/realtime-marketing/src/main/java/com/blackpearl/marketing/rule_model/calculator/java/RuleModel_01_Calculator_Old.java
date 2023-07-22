@@ -6,7 +6,6 @@ import com.alibaba.fastjson.JSONObject;
 import com.blackpearl.marketing.common.interfaces.RuleCalculator;
 import com.blackpearl.marketing.common.pojo.EventLog;
 import com.blackpearl.marketing.common.pojo.RuleInfo;
-import com.blackpearl.marketing.common.utils.EventComparator;
 import org.apache.commons.lang3.time.DateUtils;
 import org.roaringbitmap.RoaringBitmap;
 import redis.clients.jedis.Jedis;
@@ -19,7 +18,7 @@ import java.text.ParseException;
  * 运算器java代码只在开发测试时使用，生产中要将java代码转成groovy代码，并使用enjoy模板引擎处理，最后放到数据库中
  * 规则上线时，会自动到mysql中去查，然后渲染成对应的计算代码
  */
-public class RuleModel_01_Calculator implements RuleCalculator {
+public class RuleModel_01_Calculator_Old implements RuleCalculator {
 
     private Jedis jedis;
     private JSONObject ruleDefinition;
@@ -39,35 +38,65 @@ public class RuleModel_01_Calculator implements RuleCalculator {
         // 如果当前用户是改规则的受众人群，则触发计算逻辑，否则什么也不做
         if (profileUserBitmap.contains(eventLog.getGuid())) {
 
-            // 如果满足画像条件，先对事件做判断，如果满足行为次数条件参数（事件ID匹配，时间窗口匹配，且所有属性参数也匹配），则将redis中对应状态值+1
+            long eventTime = eventLog.getEventTime();
+
             String ruleId = ruleDefinition.getString("ruleId");
             JSONObject actionCountCondition = ruleDefinition.getJSONObject("actionCountCondition");
             JSONArray eventParams = actionCountCondition.getJSONArray("eventParams");
 
             for (int i = 0; i < eventParams.size(); i++) {
                 JSONObject eventParam = eventParams.getJSONObject(i);
-                if (EventComparator.isConsistent(eventLog, eventParam)) {
-                    Integer conditionId = eventParam.getInteger("conditionId");
+
+                Integer conditionId = eventParam.getInteger("conditionId");
+                String eventId = eventParam.getString("eventId");
+                String windowStart = eventParam.getString("windowStart");
+                String windowEnd = eventParam.getString("windowEnd");
+
+                // 1. 如果当前事件ID和参数中ID不一致，说明不是当前事件，直接跳过本次循环
+                if (!eventId.equals(eventLog.getEventId())) continue;
+
+                // 2. 判断事件是否在规则约定的时间窗口内，如果没定义时间窗口，则默认满足；如果定义了时间窗口，则在时间窗口内才满足，否则直接跳过这次循环
+                if (windowStart != null && !windowStart.isEmpty()) {
+                    long startTime = DateUtils.parseDate(windowStart, "yyyy-MM-dd HH:mm:ss").getTime();
+                    if (eventTime < startTime) continue;
+                }
+
+                if (windowEnd != null && !windowEnd.isEmpty()) {
+                    long endTime = DateUtils.parseDate(windowEnd, "yyyy-MM-dd HH:mm:ss").getTime();
+                    if (eventTime > endTime) continue;
+                }
+
+                // 3. 判断事件属性是否全部匹配
+                // 目前只支持每个大事件的动态逻辑关系（自定义或与非逻辑关系），单个事件的多个属性条件只支持 && 的关系，
+                // 如果想实现单事件中多属性的动态逻辑组合，可将其提取成一个父级事件条件即可。
+
+                int matchCount = 0;
+                JSONArray attributeParams = eventParam.getJSONArray("attributeParams");
+                for (int j = 0; j < attributeParams.size(); j++) {
+                    JSONObject attributeParam = attributeParams.getJSONObject(j);
+
+                    String attributeName = attributeParam.getString("attributeName");
+                    String compareType = attributeParam.getString("compareType");
+                    String compareValue = attributeParam.getString("compareValue");
+                    String eventAttributeValue = eventLog.getProperties().get(attributeName);
+
+                    if (eventAttributeValue == null) break;
+                    if ("=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) == 0)) break;
+                    if (">".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) > 0)) break;
+                    if ("<".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) < 0)) break;
+                    if (">=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) >= 0)) break;
+                    if ("<=".equals(compareType) && !(compareValue.compareTo(eventAttributeValue) <= 0)) break;
+
+                    matchCount++;
+                }
+
+                // 以上条件都满足（即当前事件与规则参数事件ID匹配，时间窗口也匹配，且所有属性参数也匹配），对redis中当前规则当前条件当前用户的次数+1
+                if (matchCount == attributeParams.size()) {
                     String redisKey = ruleId + ":" + conditionId;
                     jedis.hincrBy(redisKey, String.valueOf(eventLog.getGuid()), 1);
                 }
-            }
-
-            // 如果画像条件满足，则还需判断当前规则是否包含触发事件 -> triggerEvent 字段是否有值
-            // 如果存在触发事件（triggerEvent != null），则只有当前行为（eventLog）与触发事件一致时，才会触发 match() 方法
-            // 如果没有触发事件（triggerEvent == null），则说明只要规则一满足，就需要向用户发送触达信息，这也意味着每次事件计算完成后就要调用一次 match() 方法
-            JSONObject triggerEventParam = ruleDefinition.getJSONObject("triggerEvent");
-            if (triggerEventParam == null || EventComparator.isConsistent(eventLog, triggerEventParam)) {
-
-                match(eventLog.getGuid());
-
-
-                // TODO 返回规则匹配触达信息
 
             }
-
-
-            // TODO 返回规则不匹配信息
 
         }
 
